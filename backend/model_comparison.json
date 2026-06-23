@@ -1,0 +1,45 @@
+{
+  "models": {
+    "Logistic Regression": {
+      "accuracy": 0.9481,
+      "precision": 0.9643,
+      "recall": 0.7941,
+      "f1_score": 0.871,
+      "training_samples": 614,
+      "testing_samples": 154
+    },
+    "Random Forest": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "training_samples": 614,
+      "testing_samples": 154
+    },
+    "Decision Tree": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "training_samples": 614,
+      "testing_samples": 154
+    },
+    "Gradient Boosting": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "training_samples": 614,
+      "testing_samples": 154
+    },
+    "SVM": {
+      "accuracy": 0.974,
+      "precision": 1.0,
+      "recall": 0.8824,
+      "f1_score": 0.9375,
+      "training_samples": 614,
+      "testing_samples": 154
+    }
+  },
+  "best_model": "Random Forest"
+}

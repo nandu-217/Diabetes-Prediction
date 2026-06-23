@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Prediction - Get Your Risk Score</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-heartbeat"></i>
+                <span>DiabetesAI</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="predict.html" class="active">Prediction</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="chatbot.html">Chatbot</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="prediction-page">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-stethoscope"></i> Diabetes Risk Assessment</h1>
+                <p>Enter your health parameters to get an instant AI-powered risk analysis</p>
+            </div>
+
+            <div class="prediction-container">
+                <!-- Input Form -->
+                <div class="form-section">
+                    <form id="predictionForm" class="health-form">
+                        <div class="form-group">
+                            <label for="pregnancies">
+                                <i class="fas fa-baby-carriage"></i> Pregnancies
+                            </label>
+                            <input type="number" id="pregnancies" name="pregnancies" min="0" max="20" value="0" required>
+                            <span class="hint">Number of times pregnant</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="glucose">
+                                <i class="fas fa-candy-cane"></i> Glucose Level (mg/dL)
+                            </label>
+                            <input type="number" id="glucose" name="glucose" min="0" max="300" placeholder="e.g., 120" required>
+                            <span class="hint">Normal: 70-140 mg/dL</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="blood_pressure">
+                                <i class="fas fa-heartbeat"></i> Blood Pressure (mm Hg)
+                            </label>
+                            <input type="number" id="blood_pressure" name="blood_pressure" min="0" max="200" placeholder="e.g., 80" required>
+                            <span class="hint">Normal: < 120/80 mm Hg</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="skin_thickness">
+                                <i class="fas fa-ruler-vertical"></i> Skin Thickness (mm)
+                            </label>
+                            <input type="number" id="skin_thickness" name="skin_thickness" min="0" max="100" placeholder="e.g., 20" required>
+                            <span class="hint">Triceps skinfold thickness</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="insulin">
+                                <i class="fas fa-syringe"></i> Insulin Level (mu U/ml)
+                            </label>
+                            <input type="number" id="insulin" name="insulin" min="0" max="900" placeholder="e.g., 80" required>
+                            <span class="hint">Normal: 16-166 mu U/ml</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bmi">
+                                <i class="fas fa-weight"></i> BMI (Body Mass Index)
+                            </label>
+                            <input type="number" id="bmi" name="bmi" min="0" max="70" step="0.1" placeholder="e.g., 25.5" required>
+                            <span class="hint">Normal: 18.5-24.9</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="diabetes_pedigree">
+                                <i class="fas fa-dna"></i> Diabetes Pedigree Function
+                            </label>
+                            <input type="number" id="diabetes_pedigree" name="diabetes_pedigree" min="0" max="3" step="0.01" placeholder="e.g., 0.5" required>
+                            <span class="hint">Family history indicator (0-1 low, 1+ high)</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="age">
+                                <i class="fas fa-calendar-alt"></i> Age (years)
+                            </label>
+                            <input type="number" id="age" name="age" min="1" max="120" placeholder="e.g., 35" required>
+                            <span class="hint">Age in years</span>
+                        </div>
+
+                        <button type="submit" class="btn-submit">
+                            <i class="fas fa-magic"></i> Analyze My Risk
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Results Section -->
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <div class="advanced-spinner">
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                            <div class="spinner-ring"></div>
+                            <i class="fas fa-heartbeat pulse-icon"></i>
+                        </div>
+                        <p class="loading-text">Analyzing your health data...</p>
+                    </div>
+
+                    <div class="results-content" id="resultsContent" style="display: none;">
+                        <div class="result-header">
+                            <h2><i class="fas fa-clipboard-check"></i> Your Results</h2>
+                        </div>
+
+                        <!-- Risk Gauge -->
+                        <div class="risk-gauge">
+                            <div class="gauge-container">
+                                <div class="gauge">
+                                    <div class="gauge-fill" id="gaugeFill"></div>
+                                </div>
+                                <div class="gauge-value">
+                                    <span id="riskPercentage">0</span>%
+                                </div>
+                            </div>
+                            <div class="gauge-labels">
+                                <span>Low Risk</span>
+                                <span>Moderate</span>
+                                <span>High Risk</span>
+                            </div>
+                        </div>
+
+                        <!-- Prediction Result -->
+                        <div class="prediction-result" id="predictionResult">
+                            <div class="result-icon" id="resultIcon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="result-text">
+                                <h3 id="resultTitle">Non-Diabetic</h3>
+                                <p id="resultDescription">Your risk level is low</p>
+                            </div>
+                        </div>
+
+                        <!-- Health Score -->
+                        <div class="health-score">
+                            <div class="score-circle" id="healthScoreCircle">
+                                <svg viewBox="0 0 36 36">
+                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path class="circle" id="scoreCircle" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                </svg>
+                                <div class="score-number" id="healthScore">85</div>
+                                <div class="score-label-inside">Health Score</div>
+                            </div>
+                            <div class="score-status" id="scoreStatus">Excellent</div>
+                        </div>
+
+                        <!-- Early Warning Alert -->
+                        <div class="early-warning-alert" id="earlyWarningAlert" style="display: none;">
+                            <div class="warning-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="warning-content">
+                                <h4>⚠ High Risk Detected</h4>
+                                <p id="warningMessage">Your diabetes risk is elevated. Please consult a healthcare provider.</p>
+                            </div>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div class="recommendations" id="recommendations">
+                            <h3><i class="fas fa-lightbulb"></i> Personalized Recommendations</h3>
+                            <div class="recommendation-list" id="recommendationList"></div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button class="btn-action btn-download" onclick="downloadReport()">
+                                <i class="fas fa-file-pdf"></i> Download Report
+                            </button>
+                            <button class="btn-action btn-chat" onclick="window.location.href='chatbot.html'">
+                                <i class="fas fa-comments"></i> Ask Chatbot
+                            </button>
+                            <button class="btn-action btn-reset" onclick="resetForm()">
+                                <i class="fas fa-redo"></i> New Prediction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('resultsContent').style.display = 'none';
+            
+            // Collect form data
+            const formData = {
+                pregnancies: parseFloat(document.getElementById('pregnancies').value) || 0,
+                glucose: parseFloat(document.getElementById('glucose').value),
+                blood_pressure: parseFloat(document.getElementById('blood_pressure').value),
+                skin_thickness: parseFloat(document.getElementById('skin_thickness').value),
+                insulin: parseFloat(document.getElementById('insulin').value),
+                bmi: parseFloat(document.getElementById('bmi').value),
+                diabetes_pedigree: parseFloat(document.getElementById('diabetes_pedigree').value),
+                age: parseFloat(document.getElementById('age').value),
+                user_id: 'user_' + Date.now()
+            };
+            
+            try {
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResults(result);
+                } else {
+                    alert('Error: ' + (result.error || 'Prediction failed'));
+                }
+            } catch (error) {
+                alert('Connection error. Make sure the backend server is running.');
+                console.error(error);
+            }
+        });
+        
+        function displayResults(result) {
+            // Hide loading, show results
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('resultsContent').style.display = 'block';
+            
+            // Update risk percentage with count-up animation
+            animateValue('riskPercentage', 0, result.risk_percentage, 1500);
+            
+            // Animate gauge
+            setTimeout(() => {
+                document.getElementById('gaugeFill').style.width = result.risk_percentage + '%';
+            }, 300);
+            
+            // Update prediction result
+            const resultTitle = document.getElementById('resultTitle');
+            const resultDescription = document.getElementById('resultDescription');
+            const resultIcon = document.getElementById('resultIcon');
+            
+            if (result.prediction_int === 1) {
+                resultTitle.textContent = 'Diabetic';
+                resultDescription.textContent = `Your diabetes risk is ${result.risk_level} (${result.risk_percentage}%)`;
+                resultIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                resultIcon.className = 'result-icon warning';
+                
+                // Show early warning
+                document.getElementById('earlyWarningAlert').style.display = 'flex';
+                document.getElementById('warningMessage').textContent = 
+                    `Your diabetes risk is ${result.risk_percentage}%. ${result.recommendations[0]?.message || 'Please consult a healthcare provider for detailed evaluation.'}`;
+            } else {
+                resultTitle.textContent = 'Non-Diabetic';
+                resultDescription.textContent = `Your diabetes risk is ${result.risk_level} (${result.risk_percentage}%)`;
+                resultIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                resultIcon.className = 'result-icon success';
+                document.getElementById('earlyWarningAlert').style.display = 'none';
+            }
+            
+            // Calculate and update health score with animation
+            const healthScore = Math.round(100 - result.risk_percentage);
+            animateValue('healthScore', 0, healthScore, 1500);
+            
+            // Update score status
+            const scoreStatus = document.getElementById('scoreStatus');
+            if (healthScore >= 80) {
+                scoreStatus.textContent = 'Excellent';
+                scoreStatus.style.color = '#4CAF50';
+            } else if (healthScore >= 60) {
+                scoreStatus.textContent = 'Good';
+                scoreStatus.style.color = '#8BC34A';
+            } else if (healthScore >= 40) {
+                scoreStatus.textContent = 'Moderate';
+                scoreStatus.style.color = '#FFC107';
+            } else {
+                scoreStatus.textContent = 'Needs Attention';
+                scoreStatus.style.color = '#F44336';
+            }
+            
+            // Color code based on score
+            const circle = document.getElementById('scoreCircle');
+            if (healthScore >= 70) {
+                circle.style.stroke = '#4CAF50';
+            } else if (healthScore >= 40) {
+                circle.style.stroke = '#FFC107';
+            } else {
+                circle.style.stroke = '#F44336';
+            }
+            
+            // Animate score circle fill
+            setTimeout(() => {
+                circle.style.strokeDasharray = `${healthScore}, 100`;
+            }, 500);
+            
+            // Display recommendations with stagger animation
+            const recList = document.getElementById('recommendationList');
+            recList.innerHTML = '';
+            
+            if (result.recommendations && result.recommendations.length > 0) {
+                result.recommendations.forEach((rec, index) => {
+                    const recItem = document.createElement('div');
+                    recItem.className = `recommendation-item priority-${rec.priority}`;
+                    recItem.style.animationDelay = `${index * 0.1}s`;
+                    recItem.innerHTML = `
+                        <div class="rec-category">
+                            <i class="fas fa-tag"></i> ${rec.category}
+                        </div>
+                        <div class="rec-message">${rec.message}</div>
+                        <div class="rec-action">
+                            <i class="fas fa-arrow-right"></i> ${rec.action}
+                        </div>
+                    `;
+                    recList.appendChild(recItem);
+                });
+            }
+            
+            // Store current result for chatbot and history
+            const predictionData = {
+                ...result,
+                timestamp: new Date().toISOString(),
+                id: Date.now()
+            };
+            localStorage.setItem('currentPrediction', JSON.stringify(predictionData));
+            saveToHistory(predictionData);
+        }
+        
+        function resetForm() {
+            document.getElementById('predictionForm').reset();
+            document.getElementById('resultsSection').style.display = 'none';
+        }
+        
+        // Animate value with count-up effect
+        function animateValue(elementId, start, end, duration) {
+            const element = document.getElementById(elementId);
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= end) {
+                    element.textContent = Math.floor(end);
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(current);
+                }
+            }, 16);
+        }
+        
+        // Save to user history
+        function saveToHistory(predictionData) {
+            let history = JSON.parse(localStorage.getItem('predictionHistory') || '[]');
+            history.unshift(predictionData); // Add to beginning
+            
+            // Keep only last 50 predictions
+            if (history.length > 50) {
+                history = history.slice(0, 50);
+            }
+            
+            localStorage.setItem('predictionHistory', JSON.stringify(history));
+        }
+        
+        // Generate PDF report
+        async function downloadReport() {
+            const result = JSON.parse(localStorage.getItem('currentPrediction') || '{}');
+            
+            if (!result.prediction) {
+                alert('No prediction data available');
+                return;
+            }
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Header
+                doc.setFillColor(76, 175, 80);
+                doc.rect(0, 0, 210, 40, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24);
+                doc.text('DiabetesAI Health Report', 105, 20, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`Generated: ${new Date(result.timestamp).toLocaleString()}`, 105, 30, { align: 'center' });
+                
+                // Results Section
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(16);
+                doc.text('Prediction Results', 20, 60);
+                
+                doc.setFontSize(12);
+                doc.text(`Prediction: ${result.prediction}`, 20, 70);
+                doc.text(`Risk Score: ${result.risk_percentage}%`, 20, 78);
+                doc.text(`Risk Level: ${result.risk_level}`, 20, 86);
+                doc.text(`BMI Category: ${result.bmi_category}`, 20, 94);
+                doc.text(`Health Score: ${Math.round(100 - result.risk_percentage)}/100`, 20, 102);
+                
+                // Recommendations Section
+                doc.setFontSize(16);
+                doc.text('Personalized Recommendations', 20, 120);
+                
+                doc.setFontSize(12);
+                let yPosition = 130;
+                
+                if (result.recommendations && result.recommendations.length > 0) {
+                    result.recommendations.forEach((rec, index) => {
+                        if (yPosition > 270) {
+                            doc.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        doc.text(`${index + 1}. ${rec.category}: ${rec.message}`, 20, yPosition);
+                        yPosition += 10;
+                        doc.text(`   Action: ${rec.action}`, 25, yPosition);
+                        yPosition += 12;
+                    });
+                }
+                
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${pageCount}`, 105, 280, { align: 'center' });
+                }
+                
+                // Save PDF
+                doc.save(`Diabetes_Report_${Date.now()}.pdf`);
+                
+                // Show success message
+                showNotification('Report downloaded successfully!', 'success');
+            } catch (error) {
+                console.error('PDF Generation Error:', error);
+                alert('Error generating PDF. Please try again.');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? '#4CAF50' : '#2196F3'};
+                color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 9999;
+                animation: slideInRight 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

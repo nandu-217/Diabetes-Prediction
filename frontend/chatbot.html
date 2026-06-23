@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Chatbot - Your AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-heartbeat"></i>
+                <span>DiabetesAI</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="predict.html">Prediction</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="chatbot.html" class="active">Chatbot</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Chatbot Page -->
+    <main class="chatbot-page">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-robot"></i> Health Assistant Chatbot</h1>
+                <p>Ask me anything about diabetes, diet, exercise, and healthy living!</p>
+            </div>
+
+            <div class="chat-container glass-effect">
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-bubble">
+                                Hello! I'm your personal Diabetes Health Assistant. How can I help you today? 😊
+                            </div>
+                            <div class="message-time">Just now</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Suggestions -->
+                <div class="quick-suggestions">
+                    <button onclick="sendQuickQuery('Explain my prediction result')">
+                        <i class="fas fa-search"></i> Explain Results
+                    </button>
+                    <button onclick="sendQuickQuery('Give me a diet plan')">
+                        <i class="fas fa-apple-alt"></i> Diet Plan
+                    </button>
+                    <button onclick="sendQuickQuery('Suggest exercises for me')">
+                        <i class="fas fa-running"></i> Exercise Tips
+                    </button>
+                    <button onclick="sendQuickQuery('How can I prevent diabetes?')">
+                        <i class="fas fa-shield-alt"></i> Prevention
+                    </button>
+                    <button onclick="sendQuickQuery('What are diabetes symptoms?')">
+                        <i class="fas fa-notes-medical"></i> Symptoms
+                    </button>
+                </div>
+
+                <!-- Input Area -->
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <button class="btn-voice" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice Input">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <input 
+                            type="text" 
+                            id="userInput" 
+                            placeholder="Type your question here..." 
+                            onkeypress="handleKeyPress(event)"
+                            class="glass-input"
+                        >
+                        <button class="btn-send" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="voice-indicator" id="voiceIndicator" style="display: none;">
+                        <i class="fas fa-microphone"></i> Listening... Click to stop
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Info Panel -->
+            <div class="chat-info">
+                <div class="info-card glass-effect">
+                    <h3><i class="fas fa-info-circle"></i> What I Can Help With</h3>
+                    <ul>
+                        <li>✓ Explain your diabetes prediction results</li>
+                        <li>✓ Provide personalized diet recommendations</li>
+                        <li>✓ Suggest exercise routines</li>
+                        <li>✓ Answer diabetes-related questions</li>
+                        <li>✓ Share prevention strategies</li>
+                        <li>✓ Discuss symptoms and risk factors</li>
+                        <li>✓ Offer lifestyle modification tips</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card tip-card glass-effect">
+                    <h3><i class="fas fa-lightbulb"></i> Health Tip of the Day</h3>
+                    <p id="dailyTip">Regular physical activity can help prevent type 2 diabetes by improving insulin sensitivity and maintaining a healthy weight. Aim for at least 30 minutes of moderate exercise most days of the week!</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        let currentPrediction = null;
+        let isListening = false;
+        let recognition = null;
+
+        // Load current prediction from localStorage
+        try {
+            currentPrediction = JSON.parse(localStorage.getItem('currentPrediction'));
+        } catch (e) {
+            console.log('No prediction data available');
+        }
+
+        // Initialize speech recognition if available
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0])
+                    .map(result => result.transcript)
+                    .join('');
+                
+                document.getElementById('userInput').value = transcript;
+                
+                if (event.results[0].isFinal) {
+                    sendMessage();
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                toggleVoiceInput();
+            };
+
+            recognition.onend = function() {
+                if (isListening) {
+                    toggleVoiceInput();
+                }
+            };
+        } else {
+            document.getElementById('voiceBtn').style.display = 'none';
+            console.log('Speech recognition not supported');
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Send to backend
+            fetch('http://localhost:5000/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: message,
+                    prediction: currentPrediction ? currentPrediction.prediction_int : null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                removeTypingIndicator();
+                addMessage(data.response, 'bot');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage("I'm sorry, I'm having trouble connecting right now. Please check if the server is running.", 'bot');
+            });
+        }
+
+        function sendQuickQuery(query) {
+            document.getElementById('userInput').value = query;
+            sendMessage();
+        }
+
+        function addMessage(text, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (sender === 'bot') {
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            ${formatMessage(text)}
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-bubble user-bubble">
+                            ${text}
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                    <div class="message-avatar user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                `;
+            }
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function formatMessage(text) {
+            // Convert markdown-style formatting to HTML
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/•/g, '•')
+                .replace(/\n/g, '<br>');
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot-message typing-indicator';
+            typingDiv.id = 'typingIndicator';
+
+            typingDiv.innerHTML = `
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble typing">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) {
+                alert('Voice input is not supported in your browser.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                document.getElementById('voiceBtn').classList.remove('listening');
+                document.getElementById('voiceIndicator').style.display = 'none';
+            } else {
+                recognition.start();
+                isListening = true;
+                document.getElementById('voiceBtn').classList.add('listening');
+                document.getElementById('voiceIndicator').style.display = 'flex';
+            }
+        }
+
+        // Daily tips rotation
+        const tips = [
+            "Regular physical activity can help prevent type 2 diabetes by improving insulin sensitivity and maintaining a healthy weight. Aim for at least 30 minutes of moderate exercise most days of the week!",
+            "Eating a balanced diet rich in fiber, whole grains, and vegetables can help stabilize blood sugar levels and reduce diabetes risk.",
+            "Losing just 5-10% of your body weight can significantly reduce your risk of developing type 2 diabetes.",
+            "Drinking water instead of sugary beverages can help control blood sugar levels and support weight management.",
+            "Getting 7-8 hours of quality sleep each night is crucial for maintaining healthy blood sugar levels.",
+            "Stress management through meditation, yoga, or deep breathing can help improve blood sugar control.",
+            "Regular health screenings and check-ups can help detect prediabetes early when it's most treatable."
+        ];
+
+        // Set random daily tip
+        document.getElementById('dailyTip').textContent = tips[Math.floor(Math.random() * tips.length)];
+    </script>
+</body>
+</html>

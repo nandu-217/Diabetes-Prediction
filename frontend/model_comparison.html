@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison Dashboard - DiabetesAI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-heartbeat"></i>
+                <span>DiabetesAI</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="predict.html">Prediction</a></li>
+                <li><a href="dashboard.html" class="active">Model Comparison</a></li>
+                <li><a href="chatbot.html">Chatbot</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="model-comparison-page">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-line"></i> Model Performance Comparison</h1>
+                <p>Comprehensive analysis of 5 machine learning models for diabetes prediction</p>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="control-panel">
+                <button class="btn-compare" onclick="loadComparisonData()">
+                    <i class="fas fa-sync-alt"></i> Refresh Results
+                </button>
+                <button class="btn-compare" onclick="window.location.href='predict.html'">
+                    <i class="fas fa-stethoscope"></i> Use Best Model
+                </button>
+            </div>
+
+            <!-- Best Model Highlight -->
+            <div class="best-model-card glass-effect" id="bestModelCard" style="display: none;">
+                <div class="crown-icon">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="best-model-content">
+                    <h2>🏆 Best Performing Model</h2>
+                    <h3 id="bestModelName">Loading...</h3>
+                    <div class="best-model-metrics">
+                        <div class="metric-badge">
+                            <span class="label">Accuracy</span>
+                            <span class="value" id="bestAccuracy">--</span>
+                        </div>
+                        <div class="metric-badge">
+                            <span class="label">F1 Score</span>
+                            <span class="value" id="bestF1">--</span>
+                        </div>
+                        <div class="metric-badge">
+                            <span class="label">Precision</span>
+                            <span class="value" id="bestPrecision">--</span>
+                        </div>
+                        <div class="metric-badge">
+                            <span class="label">Recall</span>
+                            <span class="value" id="bestRecall">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="comparison-section glass-effect">
+                <h3><i class="fas fa-table"></i> Performance Comparison Table</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Accuracy</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1 Score</th>
+                                <th>Training Samples</th>
+                                <th>Testing Samples</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparisonTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center;">
+                                    <div class="loading-spinner">
+                                        <div class="spinner"></div>
+                                        <p>Loading model data...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <!-- Bar Chart -->
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-chart-bar"></i> Model Accuracy Comparison</h3>
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-bullseye"></i> Multi-Metric Comparison (Radar)</h3>
+                    <canvas id="radarChart"></canvas>
+                </div>
+
+                <!-- Horizontal Bar Chart -->
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-chart-area"></i> F1 Score Ranking</h3>
+                    <canvas id="f1Chart"></canvas>
+                </div>
+
+                <!-- Grouped Bar Chart -->
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-chart-column"></i> All Metrics Overview</h3>
+                    <canvas id="groupedChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Model Details Cards -->
+            <div class="model-cards-grid" id="modelCardsGrid">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        let comparisonData = null;
+        let charts = {};
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadComparisonData);
+
+        async function loadComparisonData() {
+            try {
+                const response = await fetch('http://localhost:5000/compare-models');
+                
+                if (!response.ok) {
+                    throw new Error('Model comparison data not available');
+                }
+
+                comparisonData = await response.json();
+                
+                if (comparisonData.error) {
+                    showError(comparisonData.error);
+                    return;
+                }
+
+                displayBestModel();
+                populateTable();
+                createCharts();
+                createModelCards();
+                
+                showNotification('Model comparison data loaded successfully!', 'success');
+            } catch (error) {
+                showError('Failed to load model comparison data. Please ensure train_enhanced.py has been run.');
+                console.error('Error:', error);
+            }
+        }
+
+        function displayBestModel() {
+            const bestModelCard = document.getElementById('bestModelCard');
+            const bestModelName = document.getElementById('bestModelName');
+            const bestModel = comparisonData.best_model;
+            const metrics = comparisonData.models[bestModel];
+
+            bestModelCard.style.display = 'flex';
+            bestModelName.textContent = bestModel;
+            
+            // Animate metrics
+            animateValue('bestAccuracy', 0, metrics.accuracy, 1500);
+            animateValue('bestPrecision', 0, metrics.precision, 1500);
+            animateValue('bestRecall', 0, metrics.recall, 1500);
+            animateValue('bestF1', 0, metrics.f1_score, 1500);
+
+            // Add glow animation
+            setTimeout(() => {
+                bestModelCard.classList.add('glow-animation');
+            }, 500);
+        }
+
+        function populateTable() {
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+
+            const models = Object.entries(comparisonData.models);
+            
+            models.forEach(([modelName, metrics], index) => {
+                const row = document.createElement('tr');
+                const isBest = modelName === comparisonData.best_model;
+                
+                row.className = isBest ? 'best-model-row' : '';
+                row.style.animationDelay = `${index * 0.1}s`;
+                
+                row.innerHTML = `
+                    <td class="model-name ${isBest ? 'highlight' : ''}">
+                        ${isBest ? '🏆 ' : ''}${modelName}
+                    </td>
+                    <td>
+                        <div class="metric-bar">
+                            <div class="bar-fill" style="width: ${metrics.accuracy * 100}%; background: #4CAF50;"></div>
+                            <span>${(metrics.accuracy * 100).toFixed(1)}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="metric-bar">
+                            <div class="bar-fill" style="width: ${metrics.precision * 100}%; background: #2196F3;"></div>
+                            <span>${(metrics.precision * 100).toFixed(1)}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="metric-bar">
+                            <div class="bar-fill" style="width: ${metrics.recall * 100}%; background: #FF9800;"></div>
+                            <span>${(metrics.recall * 100).toFixed(1)}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="metric-bar">
+                            <div class="bar-fill" style="width: ${metrics.f1_score * 100}%; background: #9C27B0;"></div>
+                            <span>${(metrics.f1_score * 100).toFixed(1)}%</span>
+                        </div>
+                    </td>
+                    <td>${metrics.training_samples}</td>
+                    <td>${metrics.testing_samples}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function createCharts() {
+            const modelNames = Object.keys(comparisonData.models);
+            const accuracies = modelNames.map(name => comparisonData.models[name].accuracy);
+            const precisions = modelNames.map(name => comparisonData.models[name].precision);
+            const recalls = modelNames.map(name => comparisonData.models[name].recall);
+            const f1Scores = modelNames.map(name => comparisonData.models[name].f1_score);
+
+            // Accuracy Bar Chart
+            const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+            charts.accuracy = new Chart(accuracyCtx, {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [{
+                        label: 'Accuracy',
+                        data: accuracies,
+                        backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                callback: value => (value * 100).toFixed(0) + '%'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // Radar Chart
+            const radarCtx = document.getElementById('radarChart').getContext('2d');
+            charts.radar = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Accuracy', 'Precision', 'Recall', 'F1 Score'],
+                    datasets: modelNames.map((name, index) => {
+                        const colors = [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(153, 102, 255, 0.6)'
+                        ];
+                        const borders = [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ];
+                        
+                        return {
+                            label: name,
+                            data: [
+                                comparisonData.models[name].accuracy,
+                                comparisonData.models[name].precision,
+                                comparisonData.models[name].recall,
+                                comparisonData.models[name].f1_score
+                            ],
+                            backgroundColor: colors[index],
+                            borderColor: borders[index],
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        };
+                    })
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 12,
+                                    family: "'Poppins', sans-serif"
+                                }
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                max: 1,
+                                stepSize: 0.2
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // F1 Score Horizontal Bar Chart
+            const f1Ctx = document.getElementById('f1Chart').getContext('2d');
+            charts.f1 = new Chart(f1Ctx, {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [{
+                        label: 'F1 Score',
+                        data: f1Scores,
+                        backgroundColor: modelNames.map(name => 
+                            name === comparisonData.best_model 
+                                ? 'rgba(76, 175, 80, 0.9)' 
+                                : 'rgba(156, 39, 176, 0.7)'
+                        ),
+                        borderColor: modelNames.map(name => 
+                            name === comparisonData.best_model 
+                                ? 'rgba(76, 175, 80, 1)' 
+                                : 'rgba(156, 39, 176, 1)'
+                        ),
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                callback: value => (value * 100).toFixed(0) + '%'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+
+            // Grouped Bar Chart
+            const groupedCtx = document.getElementById('groupedChart').getContext('2d');
+            charts.grouped = new Chart(groupedCtx, {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [
+                        {
+                            label: 'Accuracy',
+                            data: accuracies,
+                            backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                            borderColor: 'rgba(76, 175, 80, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Precision',
+                            data: precisions,
+                            backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                            borderColor: 'rgba(33, 150, 243, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Recall',
+                            data: recalls,
+                            backgroundColor: 'rgba(255, 152, 0, 0.7)',
+                            borderColor: 'rgba(255, 152, 0, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'F1 Score',
+                            data: f1Scores,
+                            backgroundColor: 'rgba(156, 39, 176, 0.7)',
+                            borderColor: 'rgba(156, 39, 176, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                callback: value => (value * 100).toFixed(0) + '%'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        function createModelCards() {
+            const grid = document.getElementById('modelCardsGrid');
+            grid.innerHTML = '';
+
+            Object.entries(comparisonData.models).forEach(([modelName, metrics]) => {
+                const isBest = modelName === comparisonData.best_model;
+                
+                const card = document.createElement('div');
+                card.className = `model-card glass-effect ${isBest ? 'best-model-card-small' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="model-card-header">
+                        <h4>${isBest ? '🏆' : ''} ${modelName}</h4>
+                    </div>
+                    <div class="model-card-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">Accuracy:</span>
+                            <span class="metric-value green">${(metrics.accuracy * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Precision:</span>
+                            <span class="metric-value blue">${(metrics.precision * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Recall:</span>
+                            <span class="metric-value orange">${(metrics.recall * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">F1 Score:</span>
+                            <span class="metric-value purple">${(metrics.f1_score * 100).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function animateValue(elementId, start, end, duration) {
+            const element = document.getElementById(elementId);
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= end) {
+                    element.textContent = end.toFixed(4);
+                    clearInterval(timer);
+                } else {
+                    element.textContent = current.toFixed(4);
+                }
+            }, 16);
+        }
+
+        function showError(message) {
+            const tableBody = document.getElementById('comparisonTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px;">
+                        <div style="color: #F44336; font-size: 1.1rem;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            ${message}
+                        </div>
+                        <p style="margin-top: 10px; color: #7F8C8D;">
+                            Run <code>python train_enhanced.py</code> to generate model comparison data.
+                        </p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? '#4CAF50' : '#2196F3'};
+                color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 9999;
+                animation: slideInRight 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

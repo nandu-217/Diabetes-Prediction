@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Dashboard - Track Your Progress</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-heartbeat"></i>
+                <span>DiabetesAI</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="predict.html">Prediction</a></li>
+                <li><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="chatbot.html">Chatbot</a></li>
+            </ul>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard-page">
+        <div class="container">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-line"></i> Health Dashboard</h1>
+                <p>Track your diabetes risk and health metrics over time</p>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="stats-grid">
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalPredictions">0</h3>
+                        <p>Total Predictions</p>
+                    </div>
+                </div>
+
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon green">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="avgRiskScore">0%</h3>
+                        <p>Average Risk Score</p>
+                    </div>
+                </div>
+
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="currentBMI">--</h3>
+                        <p>Current BMI</p>
+                    </div>
+                </div>
+
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="healthTrend">--</h3>
+                        <p>Health Trend</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-chart-area"></i> Risk Progression Trend</h3>
+                    <canvas id="riskTrendChart"></canvas>
+                </div>
+
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-chart-pie"></i> Risk Distribution</h3>
+                    <canvas id="riskDistributionChart"></canvas>
+                </div>
+
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-chart-bar"></i> Health Metrics Comparison</h3>
+                    <canvas id="metricsChart"></canvas>
+                </div>
+
+                <div class="chart-container glass-effect">
+                    <h3><i class="fas fa-tachometer-alt"></i> BMI Categories</h3>
+                    <canvas id="bmiChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent History -->
+            <div class="history-section">
+                <h3><i class="fas fa-list-alt"></i> Recent Prediction History</h3>
+                <div class="history-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Risk Score</th>
+                                <th>Prediction</th>
+                                <th>Risk Level</th>
+                                <th>BMI</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BMI Calculator -->
+            <div class="bmi-calculator">
+                <h3><i class="fas fa-calculator"></i> BMI Calculator</h3>
+                <div class="bmi-calc-content">
+                    <div class="bmi-inputs">
+                        <div class="form-group">
+                            <label>Weight (kg)</label>
+                            <input type="number" id="weight" placeholder="e.g., 70">
+                        </div>
+                        <div class="form-group">
+                            <label>Height (cm)</label>
+                            <input type="number" id="height" placeholder="e.g., 170">
+                        </div>
+                        <button class="btn-calculate" onclick="calculateBMI()">
+                            <i class="fas fa-calculator"></i> Calculate BMI
+                        </button>
+                    </div>
+                    <div class="bmi-result" id="bmiResult">
+                        <div class="bmi-value" id="bmiValue">--</div>
+                        <div class="bmi-category" id="bmiCategory">Enter your details</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Early Warning System -->
+            <div class="early-warning" id="earlyWarning">
+                <h3><i class="fas fa-exclamation-triangle"></i> Early Warning System</h3>
+                <div class="warning-content">
+                    <div class="warning-indicator" id="warningIndicator">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="warning-message" id="warningMessage">
+                        <strong>All Good!</strong> Your health metrics are within normal ranges.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        // Sample data - in real app, fetch from backend
+        const sampleHistory = [
+            {
+                timestamp: new Date().toISOString(),
+                probability: 0.25,
+                prediction_int: 0,
+                risk_level: 'Low',
+                features: { bmi: 24.5, glucose: 95 }
+            },
+            {
+                timestamp: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+                probability: 0.35,
+                prediction_int: 0,
+                risk_level: 'Moderate',
+                features: { bmi: 25.2, glucose: 105 }
+            },
+            {
+                timestamp: new Date(Date.now() - 14*24*60*60*1000).toISOString(),
+                probability: 0.42,
+                prediction_int: 0,
+                risk_level: 'Moderate',
+                features: { bmi: 26.1, glucose: 110 }
+            }
+        ];
+
+        let userHistory = sampleHistory;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            // Try to fetch from backend
+            try {
+                const response = await fetch('http://localhost:5000/history/user_123');
+                if (response.ok) {
+                    const data = await response.json();
+                    userHistory = data.predictions || sampleHistory;
+                }
+            } catch (error) {
+                console.log('Using sample data');
+            }
+
+            updateStats();
+            updateHistoryTable();
+            initializeCharts();
+            checkEarlyWarning();
+        }
+
+        function updateStats() {
+            const total = userHistory.length;
+            const avgRisk = total > 0 
+                ? Math.round(userHistory.reduce((sum, p) => sum + p.probability, 0) / total * 100)
+                : 0;
+            
+            const latestBMI = userHistory.length > 0 
+                ? userHistory[0].features?.bmi?.toFixed(1) || '--'
+                : '--';
+
+            // Determine trend
+            let trend = 'Stable';
+            if (userHistory.length >= 2) {
+                const firstRisk = userHistory[userHistory.length - 1].probability;
+                const lastRisk = userHistory[0].probability;
+                const change = lastRisk - firstRisk;
+                
+                if (change < -0.1) trend = 'Improving ↗';
+                else if (change > 0.1) trend = 'Declining ↘';
+            }
+
+            document.getElementById('totalPredictions').textContent = total;
+            document.getElementById('avgRiskScore').textContent = avgRisk + '%';
+            document.getElementById('currentBMI').textContent = latestBMI;
+            document.getElementById('healthTrend').textContent = trend;
+        }
+
+        function updateHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+
+            userHistory.slice(0, 10).forEach(record => {
+                const row = document.createElement('tr');
+                const date = new Date(record.timestamp).toLocaleDateString();
+                const riskPercent = Math.round(record.probability * 100);
+                const prediction = record.prediction_int === 1 ? 'Diabetic' : 'Non-Diabetic';
+                const bmi = record.features?.bmi?.toFixed(1) || '--';
+
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>
+                        <div class="risk-bar">
+                            <div class="risk-fill" style="width: ${riskPercent}%; background: ${getRiskColor(riskPercent)}"></div>
+                            <span>${riskPercent}%</span>
+                        </div>
+                    </td>
+                    <td class="${record.prediction_int === 1 ? 'warning' : 'success'}">${prediction}</td>
+                    <td>${record.risk_level}</td>
+                    <td>${bmi}</td>
+                    <td>
+                        <button class="btn-view" onclick="viewDetails('${record.timestamp}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getRiskColor(risk) {
+            if (risk < 30) return '#4CAF50';
+            if (risk < 60) return '#FFC107';
+            return '#F44336';
+        }
+
+        function initializeCharts() {
+            // Risk Trend Chart
+            const riskCtx = document.getElementById('riskTrendChart').getContext('2d');
+            new Chart(riskCtx, {
+                type: 'line',
+                data: {
+                    labels: userHistory.map((_, i) => `Prediction ${userHistory.length - i}`),
+                    datasets: [{
+                        label: 'Risk Score (%)',
+                        data: userHistory.map(p => Math.round(p.probability * 100)),
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+
+            // Risk Distribution Chart
+            const distCtx = document.getElementById('riskDistributionChart').getContext('2d');
+            new Chart(distCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
+                    datasets: [{
+                        data: [
+                            userHistory.filter(p => p.probability < 0.3).length,
+                            userHistory.filter(p => p.probability >= 0.3 && p.probability < 0.6).length,
+                            userHistory.filter(p => p.probability >= 0.6).length
+                        ],
+                        backgroundColor: ['#4CAF50', '#FFC107', '#F44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Metrics Chart
+            const metricsCtx = document.getElementById('metricsChart').getContext('2d');
+            const latestRecord = userHistory[0] || { features: {} };
+            
+            new Chart(metricsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Glucose', 'BMI', 'Blood Pressure', 'Insulin'],
+                    datasets: [{
+                        label: 'Your Values',
+                        data: [
+                            latestRecord.features.glucose || 0,
+                            latestRecord.features.bmi || 0,
+                            latestRecord.features.blood_pressure || 0,
+                            latestRecord.features.insulin || 0
+                        ],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // BMI Chart
+            const bmiCtx = document.getElementById('bmiChart').getContext('2d');
+            const currentBMI = parseFloat(latestRecord.features.bmi) || 0;
+            
+            new Chart(bmiCtx, {
+                type: 'polarArea',
+                data: {
+                    labels: ['Underweight', 'Normal', 'Overweight', 'Obese'],
+                    datasets: [{
+                        data: [
+                            currentBMI < 18.5 ? 1 : 0,
+                            currentBMI >= 18.5 && currentBMI < 25 ? 1 : 0,
+                            currentBMI >= 25 && currentBMI < 30 ? 1 : 0,
+                            currentBMI >= 30 ? 1 : 0
+                        ],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(75, 192, 75, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(255, 99, 132, 0.6)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function calculateBMI() {
+            const weight = parseFloat(document.getElementById('weight').value);
+            const height = parseFloat(document.getElementById('height').value) / 100; // Convert to meters
+
+            if (weight && height) {
+                const bmi = (weight / (height * height)).toFixed(1);
+                document.getElementById('bmiValue').textContent = bmi;
+
+                let category = '';
+                if (bmi < 18.5) category = 'Underweight';
+                else if (bmi < 25) category = 'Normal weight';
+                else if (bmi < 30) category = 'Overweight';
+                else category = 'Obese';
+
+                document.getElementById('bmiCategory').textContent = category;
+            }
+        }
+
+        function checkEarlyWarning() {
+            const latestRecord = userHistory[0];
+            if (!latestRecord) return;
+
+            const warnings = [];
+            
+            if (latestRecord.features.glucose > 140) {
+                warnings.push('High glucose levels detected');
+            }
+            if (latestRecord.features.bmi > 30) {
+                warnings.push('BMI indicates obesity');
+            }
+            if (latestRecord.probability > 0.6) {
+                warnings.push('High diabetes risk - consult doctor');
+            }
+
+            const indicator = document.getElementById('warningIndicator');
+            const message = document.getElementById('warningMessage');
+
+            if (warnings.length > 0) {
+                indicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                indicator.className = 'warning-indicator alert';
+                message.innerHTML = `<strong>Warning:</strong> ${warnings.join('. ')}. Please consult a healthcare provider.`;
+            } else {
+                indicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+                indicator.className = 'warning-indicator success';
+                message.innerHTML = '<strong>All Good!</strong> Your health metrics are within normal ranges.';
+            }
+        }
+
+        function viewDetails(timestamp) {
+            alert('Detailed view feature coming soon!');
+        }
+    </script>
+</body>
+</html>
